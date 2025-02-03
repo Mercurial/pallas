@@ -1,5 +1,9 @@
 use pallas::{
-    ledger::traverse::{wellknown::{PREVIEW_MAGIC, TESTNET_MAGIC}, MultiEraBlock, MultiEraHeader},
+    codec::minicbor::to_vec,
+    ledger::traverse::{
+        wellknown::{PREVIEW_MAGIC, TESTNET_MAGIC},
+        MultiEraBlock, MultiEraHeader,
+    },
     network::{
         facades::PeerClient,
         miniprotocols::{blockfetch, chainsync, keepalive, Point, MAINNET_MAGIC},
@@ -132,15 +136,30 @@ async fn main() {
     loop {
         // setup a TCP socket to act as data bearer between our agents and the remote
         // relay.
-        let server = "1.tcp.ap.ngrok.io:25317";
+        let server = "preview-node.play.dev.cardano.org:3001";
         // let server = "localhost:6000";
-        let peer = PeerClient::connect_with_peersharing(server, PREVIEW_MAGIC, true).await.unwrap();
+        let peer = PeerClient::connect_with_peersharing(server, PREVIEW_MAGIC, false)
+            .await
+            .unwrap();
 
         let PeerClient {
             plexer,
+            mut peersharing,
             ..
         } = peer;
-        
+
+        peersharing.send_share_request(3).await.unwrap();
+
+        let addrs = peersharing.recv_peer_addresses().await.unwrap();
+
+        println!("peer addresses: {:?}", addrs);
+
+        peersharing.send_share_request(3).await.unwrap();
+
+        let addrs = peersharing.recv_peer_addresses().await.unwrap();
+
+        println!("peer addresses: {:?}", addrs);
+
         // log peer.is_peer_sharing
         println!("peer.is_peer_sharing: {}", peer.is_peer_sharing);
 
